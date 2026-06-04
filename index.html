@@ -1,0 +1,1845 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GW模試🌸完全版</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: sans-serif;
+  background:#ffeef5;
+  margin: 0;
+  padding:16px;
+  min-height: 100svh;
+  color: #333;
+}
+
+body > h2,
+body > .card,
+body > .mainBtn {
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+h2 {
+  text-align: center;
+  font-size: 24px;
+  margin: 12px auto 18px;
+}
+
+.card {
+  background:white;
+  padding:18px;
+  border-radius:22px;
+  margin-bottom:16px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+}
+
+#q {
+  font-size: 18px;
+  font-weight: bold;
+  line-height: 1.5;
+  margin-bottom: 14px;
+}
+
+select {
+  width: 100%;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid #ddd;
+  background: white;
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+
+.btn {
+  display:block;
+  width:100%;
+  margin:10px 0;
+  padding:15px 14px;
+  border-radius:18px;
+  border:none;
+  background:#eee;
+  font-size: 16px;
+  line-height: 1.4;
+  text-align: left;
+  color: #333;
+  touch-action: manipulation;
+}
+
+.btn:active,
+.mainBtn:active {
+  transform: scale(0.98);
+}
+
+.selected {
+  background:#ffd1dc;
+  font-weight: bold;
+}
+
+.correct {
+  background:#a8e6cf;
+  font-weight: bold;
+}
+
+.wrong {
+  background:#ffaaa5;
+  font-weight: bold;
+}
+
+.mainBtn {
+  display:block;
+  width:100%;
+  background:#ff9aa2;
+  color:white;
+  padding:15px;
+  border:none;
+  border-radius:20px;
+  margin-top:12px;
+  font-size: 17px;
+  font-weight: bold;
+  touch-action: manipulation;
+}
+
+#ex {
+  margin-top: 16px;
+  font-size: 18px;
+  font-weight: bold;
+  text-align: center;
+}
+
+#result h3 {
+  text-align: center;
+  font-size: 22px;
+}
+
+#result h4 {
+  margin-top: 20px;
+}
+
+#result div {
+  background: #fff7fa;
+  padding: 12px;
+  border-radius: 14px;
+}
+
+@media (max-width: 390px) {
+  body {
+    padding: 12px;
+  }
+
+  h2 {
+    font-size: 22px;
+  }
+
+  .card {
+    padding: 16px;
+  }
+
+  #q {
+    font-size: 17px;
+  }
+
+  .btn,
+  .mainBtn,
+  select {
+    font-size: 16px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<h2>🌸 GW模試アプリ 🌸</h2>
+
+<div id="setup" class="card">
+<select id="count">
+<option value="20">20問</option>
+<option value="50">50問</option>
+<option value="100">100問</option>
+<option value="150">150問</option>
+</select>
+<button class="mainBtn" onclick="start()">開始</button>
+</div>
+
+<div id="quiz" class="card" style="display:none;">
+<div id="q"></div>
+<div id="a"></div>
+<button id="submitBtn" class="mainBtn" onclick="submitAnswer()">回答</button>
+<div id="ex"></div>
+<button id="nextBtn" class="mainBtn" style="display:none;" onclick="nextQuestion()">次へ</button>
+</div>
+
+<div id="result" class="card" style="display:none;"></div>
+  
+<button id="retryNewBtn" class="mainBtn" style="display:none;" onclick="retryNew()">
+  🔄 別問題でもう一回
+</button>
+
+<button id="retryBtn" class="mainBtn" style="display:none;" onclick="retryWrong()">間違い問題だけ再挑戦🔥</button>
+
+<script>
+
+// ===== 問題（拡張版）=====
+const base = [
+
+/* 基本 */
+{q:"インセプションの目的は？",a:["開発","見積と計画","テスト","配備"],correct:[1],multi:false},
+{q:"バックログとは？",a:["設計書","タスク一覧","DB","サーバ"],correct:[1],multi:false},
+{q:"Three Amigosは？",a:["BA","Dev","QA","PM"],correct:[0,1,2],multi:true},
+{q:"UI定義は？",a:["XML","JSON","PCF","HTML"],correct:[2],multi:false},
+{q:"E2Eテストは？",a:["部分","全体","UI","DB"],correct:[1],multi:false},
+
+/* フェーズ */
+{q:"開発フェーズの目的は？",a:["設計","実装","テスト","運用"],correct:[1],multi:false},
+{q:"安定化フェーズで実施することは？",a:["E2E","UAT","開発","リグレッション"],correct:[0,1,3],multi:true},
+{q:"配備フェーズで実施することは？",a:["データ移行","ユーザー研修","設計","開発"],correct:[0,1],multi:true},
+
+/* テスト */
+{q:"リグレッションテストとは？",a:["新機能確認","既存確認","UI確認","設計"],correct:[1],multi:false},
+{q:"UATとは？",a:["開発確認","ユーザー確認","設計確認","分析"],correct:[1],multi:false},
+
+/* アジャイル */
+{q:"ベロシティとは？",a:["速度","生産性","量","設計"],correct:[1],multi:false},
+{q:"バーンダウンとは？",a:["売上","残作業","速度","分析"],correct:[1],multi:false},
+
+/* ワークショップ */
+{q:"ハッピーパスとは？",a:["例外","正常フロー","バグ","削除"],correct:[1],multi:false},
+{q:"エッジパスとは？",a:["例外ケース","通常","設計","削除"],correct:[0],multi:false},
+{q:"パーキングロットとは？",a:["保留事項","削除","DB","即決"],correct:[0],multi:false},
+
+/* 役割 */
+{q:"BAの役割は？",a:["要件整理","開発","営業","運用"],correct:[0],multi:false},
+{q:"スクラムマスターの役割は？",a:["開発","支援","営業","DB"],correct:[1],multi:false},
+{q:"開発者の役割は？",a:["要件","開発","営業","調整"],correct:[1],multi:false},
+
+/* 引っかけ */
+{q:"開発フェーズで行わないものは？",a:["デモ","構築","スプリント","リリース"],correct:[3],multi:false},
+{q:"安定化フェーズで行わないものは？",a:["UAT","E2E","開発","リグレッション"],correct:[2],multi:false},
+
+/* 追加問題（重要） */
+{q:"サンドボックスとは？",a:["本番","検証環境","営業","分析"],correct:[1],multi:false},
+{q:"INVESTのVは？",a:["Valid","Valuable","Version","Visible"],correct:[1],multi:false},
+{q:"標準機能のメリットは？",a:["効率化","コスト削減","リスク増加","不安定化"],correct:[0,1],multi:true},
+{q:"データ移行はどのフェーズ？",a:["開発","配備","テスト","設計"],correct:[1],multi:false},
+{q:"E2Eは何を確認する？",a:["UI","一連の流れ","DB","設計"],correct:[1],multi:false},
+
+/* ==== フェーズ目的 ==== */
+{q:"インセプションの目的は？",a:["開発","見積とイテレーション確認","テスト","配備"],correct:[1],multi:false},
+{q:"スプリント0の目的は？",a:["開発","準備と計画","テスト","運用"],correct:[1],multi:false},
+{q:"開発フェーズの目的は？",a:["設計","ユーザーストーリー実現","分析","運用"],correct:[1],multi:false},
+{q:"安定化フェーズの目的は？",a:["設計","品質確認","開発","分析"],correct:[1],multi:false},
+{q:"配備の目的は？",a:["設計","リリース","開発","分析"],correct:[1],multi:false},
+
+/* ==== フェーズ作業 ==== */
+{q:"プリインセプションで行うことは？（複数）",a:["RFP見積","販売デモ","テスト","開発"],correct:[0,1],multi:true},
+{q:"インセプションで行うことは？（複数）",a:["要件詳細化","バックログ見積","環境構築","UI設計"],correct:[0,1],multi:true},
+{q:"スプリント0で行うことは？（複数）",a:["環境設定","研修","アクセラレータ実装","データ移行"],correct:[0,1,2],multi:true},
+{q:"開発フェーズで行うことは？（複数）",a:["スプリント計画","開発","デモ","学習"],correct:[0,1,2,3],multi:true},
+{q:"安定化フェーズで実施することは？（複数）",a:["E2E","UAT","リグレッション","開発"],correct:[0,1,2],multi:true},
+{q:"配備フェーズで実施することは？（複数）",a:["データ移行","先行配備","完全配備","開発"],correct:[0,1,2],multi:true},
+
+/* ==== オンサイト ==== */
+{q:"インセプションのオンサイト割合は？",a:["80%","50%","25%","10%未満"],correct:[0],multi:false},
+{q:"開発フェーズのオンサイト割合は？",a:["80%","50%","25%","10%未満"],correct:[2],multi:false},
+{q:"安定化フェーズのオンサイト割合は？",a:["80%","50%","25%","10%未満"],correct:[3],multi:false},
+
+/* ==== 期間 ==== */
+{q:"インセプション期間は？",a:["1-6週","2-8週","4-40週","2-4週"],correct:[1],multi:false},
+{q:"開発フェーズ期間は？",a:["1-4週","2-8週","4-40週","2-4週"],correct:[2],multi:false},
+{q:"安定化フェーズ期間は？",a:["1-4週","2-20週","4-40週","2-4週"],correct:[1],multi:false},
+
+/* ==== テスト ==== */
+{q:"E2Eテストとは？",a:["一部","全体","UI","DB"],correct:[1],multi:false},
+{q:"リグレッションテストとは？",a:["新機能","既存確認","UI","設計"],correct:[1],multi:false},
+{q:"UATとは？",a:["開発者確認","ユーザー確認","設計","分析"],correct:[1],multi:false},
+
+/* ==== 用語 ==== */
+{q:"バックログとは？",a:["設計書","タスク一覧","DB","コード"],correct:[1],multi:false},
+{q:"ベロシティとは？",a:["速度","生産性","量","設計"],correct:[1],multi:false},
+{q:"バーンダウンとは？",a:["売上","残作業","設計","分析"],correct:[1],multi:false},
+{q:"ベネフィットマッピングとは？",a:["UI","価値可視化","DB","開発"],correct:[1],multi:false},
+
+/* ==== ワークショップ ==== */
+{q:"ハッピーパスとは？",a:["例外","正常フロー","バグ","削除"],correct:[1],multi:false},
+{q:"エッジパスとは？",a:["例外ケース","通常","設計","削除"],correct:[0],multi:false},
+{q:"パーキングロットとは？",a:["保留事項","削除","DB","即決"],correct:[0],multi:false},
+
+/* ==== 役割 ==== */
+{q:"BAの役割は？（複数）",a:["要件整理","翻訳","開発","営業"],correct:[0,1],multi:true},
+{q:"スクラムマスターの役割は？",a:["開発","支援","営業","DB"],correct:[1],multi:false},
+{q:"開発者の役割は？",a:["要件","開発","営業","調整"],correct:[1],multi:false},
+
+/* ==== INVEST ==== */
+{q:"INVESTのVは？",a:["Valid","Valuable","Version","Visible"],correct:[1],multi:false},
+{q:"INVESTの要素は？（複数）",a:["Independent","Valuable","Testable","Optional"],correct:[0,1,2],multi:true},
+
+/* ==== 引っかけ ==== */
+{q:"開発フェーズで行わないものは？",a:["デモ","開発","スプリント","リリース"],correct:[3],multi:false},
+{q:"安定化フェーズで行わないものは？",a:["UAT","E2E","開発","リグレッション"],correct:[2],multi:false},
+
+/* ==== 超頻出 ==== */
+{q:"Three Amigosは？",a:["BA","Dev","QA","PM"],correct:[0,1,2],multi:true},
+{q:"サンドボックスとは？",a:["本番","テスト環境","開発","運用"],correct:[1],multi:false},
+{q:"コンフィグとは？",a:["UI変更","動作変更","DB削除","API"],correct:[1],multi:false},
+{q:"UIは何で定義？",a:["JSON","XML","PCF","HTML"],correct:[2],multi:false},
+
+/* ===== コンフィグ関連 ===== */
+{q:"コンフィグとは何か？",a:["UIのみ変更","アプリの動作変更","DB削除","API接続"],correct:[1],multi:false},
+{q:"コンフィグ対象領域は？（複数）",a:["UI","データモデル","アプリロジック","インテグレーション"],correct:[0,1,2,3],multi:true},
+{q:"PCFとは？",a:["ロジック","UI定義ファイル","DB","API"],correct:[1],multi:false},
+{q:"コンフィグを行うツールは？",a:["Excel","GW Studio","PowerBI","VSCode"],correct:[1],multi:false},
+
+/* ===== データモデル ===== */
+{q:"エンティティとは？",a:["UI","データの設計図","テスト","API"],correct:[1],multi:false},
+{q:"エンティティが持つ要素は？（複数）",a:["フィールド","タイプキー","配列キー","外部キー"],correct:[0,1,2,3],multi:true},
+{q:"タイプキーとは？",a:["自由入力","値の定義セット","UI","API"],correct:[1],multi:false},
+{q:"データディクショナリの役割は？",a:["コード生成","定義説明","UI変更","テスト"],correct:[1],multi:false},
+
+/* ===== インテグレーション ===== */
+{q:"インテグレーションとは？",a:["UI設計","システム連携","テスト","分析"],correct:[1],multi:false},
+{q:"インテグレーションの目的は？（複数）",a:["外部連携","新機能","既存活用","UI変更"],correct:[0,1,2],multi:true},
+{q:"主なインテグ手法は？（複数）",a:["Webサービス","メッセージング","バッチ","プラグイン"],correct:[0,1,2,3],multi:true},
+{q:"Webサービスとは？",a:["UI","XML連携","DB","画面"],correct:[1],multi:false},
+
+/* ===== アプリロジック ===== */
+{q:"Gosuとは？",a:["SQL","ロジック言語","UI","API"],correct:[1],multi:false},
+{q:"ルールの要素は？（複数）",a:["条件","アクション","トリガ","UI"],correct:[0,1,2],multi:true},
+{q:"ビジネスルールの対象は？",a:["複雑ロジック","簡易ロジック","UI","DB"],correct:[1],multi:false},
+
+/* ===== フェーズ詳細 ===== */
+{q:"スプリント0の目的は？",a:["実装","準備","テスト","リリース"],correct:[1],multi:false},
+{q:"スプリント0で行うことは？（複数）",a:["環境構築","研修","アクセラレータ実装","データ移行"],correct:[0,1,2],multi:true},
+{q:"安定化フェーズの目的は？",a:["開発","品質確認","設計","分析"],correct:[1],multi:false},
+{q:"配備フェーズの目的は？",a:["分析","リリース","設計","開発"],correct:[1],multi:false},
+
+/* ===== 成果物 ===== */
+{q:"インセプション成果物は？（複数）",a:["バックログ","CSP","インフラ計画","UAT"],correct:[0,1,2],multi:true},
+{q:"開発フェーズ成果物は？（複数）",a:["バーンダウン","ベロシティ","バックログ","インフラ"],correct:[0,1,2],multi:true},
+
+/* ===== BDD ===== */
+{q:"BDDとは？",a:["設計手法","振る舞い定義","DB","UI"],correct:[1],multi:false},
+{q:"BDDの特徴は？（複数）",a:["共通言語","要件確認","テスト連携","設計"],correct:[0,1,2],multi:true},
+{q:"Gherkinとは？",a:["UI","BDD言語","DB","API"],correct:[1],multi:false},
+
+/* ===== ワークショップ ===== */
+{q:"ハッピーパスとは？",a:["正常","例外","DB","分析"],correct:[0],multi:false},
+{q:"エッジパスとは？",a:["例外","正常","設計","削除"],correct:[0],multi:false},
+{q:"パーキングロットとは？",a:["保留","削除","DB","承認"],correct:[0],multi:false},
+
+/* ===== INVEST ===== */
+{q:"INVESTのIは？",a:["Impact","Independent","Input","Instance"],correct:[1],multi:false},
+{q:"INVESTの要素は？（複数）",a:["Independent","Negotiable","Valuable","Testable"],correct:[0,1,2,3],multi:true},
+
+/* ===== 役割 ===== */
+{q:"BAの役割は？（複数）",a:["要件整理","翻訳","開発","調整"],correct:[0,1,3],multi:true},
+{q:"SMの役割は？",a:["進行","開発","営業","DB"],correct:[0],multi:false},
+{q:"QAの役割は？",a:["テスト","設計","分析","営業"],correct:[0],multi:false},
+
+/* ===== Cloud ===== */
+{q:"ProducerEngageとは？",a:["分析","代理店アプリ","DB","API"],correct:[1],multi:false},
+{q:"CustomerEngageとは？",a:["顧客セルフ管理","DB","設計","分析"],correct:[0],multi:false},
+{q:"Exploreとは？",a:["分析ツール","UI","DB","開発"],correct:[0],multi:false},
+
+/* ===== SurePath ===== */
+{q:"SurePathとは？",a:["ツール","方法論と標準","DB","API"],correct:[1],multi:false},
+{q:"SurePathの目的は？（複数）",a:["品質確保","再現性","効率化","バグ増加"],correct:[0,1,2],multi:true},
+{q:"SurePathの特徴は？（複数）",a:["テンプレ","ツール","標準プロセス","自由開発"],correct:[0,1,2],multi:true},
+
+/* ===== 超頻出引っかけ ===== */
+{q:"開発フェーズで行わないものは？",a:["デモ","開発","テスト","リリース"],correct:[3],multi:false},
+{q:"安定化フェーズで行わないものは？",a:["UAT","E2E","開発","テスト"],correct:[2],multi:false},
+{q:"配備フェーズで行わないものは？",a:["移行","研修","開発","リリース"],correct:[2],multi:false},
+
+/* ===== コンフィグ深掘り ===== */
+{q:"コンフィグの目的は？（複数）",a:["動作変更","要件対応","DB削除","機能追加"],correct:[0,1,3],multi:true},
+{q:"UI変更に該当するものは？（複数）",a:["ラベル変更","配置変更","ロジック削除","画面追加"],correct:[0,1,3],multi:true},
+{q:"PCFで変更できるものは？",a:["画面構成","DBスキーマ","API","OS"],correct:[0],multi:false},
+
+/* ===== データモデル深掘り ===== */
+{q:"フィールドとは？",a:["UI","データ単位","API","画面"],correct:[1],multi:false},
+{q:"外部キーとは？",a:["外部API","他エンティティ参照","UI","設計"],correct:[1],multi:false},
+{q:"配列キーとは？",a:["単一参照","複数参照","UI","API"],correct:[1],multi:false},
+{q:"タイプキーの役割は？",a:["自由入力","値制限","画面表示","API連携"],correct:[1],multi:false},
+
+/* ===== ロジック深掘り ===== */
+{q:"Gosuルールの要素は？（複数）",a:["トリガ","条件","アクション","UI"],correct:[0,1,2],multi:true},
+{q:"ビジネスルールの特徴は？",a:["複雑処理","シンプルロジック","DB設計","API"],correct:[1],multi:false},
+{q:"ルールカテゴリは？",a:["検証","承認","アサイン","UI"],correct:[0,1,2],multi:true},
+
+/* ===== インテグレーション深掘り ===== */
+{q:"インテグレーションのメリットは？（複数）",a:["外部活用","コスト削減","時間短縮","UI改善"],correct:[0,1,2],multi:true},
+{q:"プラグインとは？",a:["UI","拡張仕組み","DB","API"],correct:[1],multi:false},
+{q:"メッセージングとは？",a:["同期処理","非同期連携","UI","DB"],correct:[1],multi:false},
+{q:"バッチ処理とは？",a:["手動処理","自動処理","UI","分析"],correct:[1],multi:false},
+
+/* ===== フェーズ超細かい ===== */
+{q:"インセプションで行うものは？（複数）",a:["詳細化","見積","研修","配備"],correct:[0,1,2],multi:true},
+{q:"スプリント0で行わないものは？",a:["環境構築","研修","開発本格","アクセラレータ"],correct:[2],multi:false},
+{q:"開発フェーズで重要な要素は？（複数）",a:["デモ","改善","スプリント","停止"],correct:[0,1,2],multi:true},
+{q:"安定化で重点は？",a:["設計","品質","分析","営業"],correct:[1],multi:false},
+
+/* ===== 成果物鬼対策 ===== */
+{q:"コンセプチュアルスプリント計画はどこで作る？",a:["開発","インセプション","配備","安定化"],correct:[1],multi:false},
+{q:"バーンダウンは何を示す？",a:["売上","残作業","速度","設計"],correct:[1],multi:false},
+{q:"ベロシティは何を表す？",a:["速度","生産性","品質","設計"],correct:[1],multi:false},
+
+/* ===== テスト超強化 ===== */
+{q:"E2Eテスト目的は？",a:["単体","全体","UIのみ","DBのみ"],correct:[1],multi:false},
+{q:"リグレッションの目的は？",a:["新機能","既存確認","設計","分析"],correct:[1],multi:false},
+{q:"UATの主体は？",a:["開発者","ユーザー","PM","SM"],correct:[1],multi:false},
+{q:"パフォーマンステストとは？",a:["UI確認","負荷確認","DB設計","分析"],correct:[1],multi:false},
+
+/* ===== ワークショップ超出る ===== */
+{q:"詳細化WSの目的は？（複数）",a:["要件確認","合意形成","設計","削除"],correct:[0,1],multi:true},
+{q:"WSでやってはいけないことは？",a:["複数会話","保留整理","合意","メモ"],correct:[0],multi:false},
+{q:"議論脱線時は？",a:["削除","パーキングロット","無視","完了"],correct:[1],multi:false},
+
+/* ===== INVESTガチ ===== */
+{q:"INVESTのTは？",a:["Testable","Time","Task","Tool"],correct:[0],multi:false},
+{q:"INVESTのSは？",a:["Small","System","Scope","Script"],correct:[0],multi:false},
+
+/* ===== 役割ガチ ===== */
+{q:"POの役割は？（複数）",a:["意思決定","価値最大化","開発","営業"],correct:[0,1],multi:true},
+{q:"SMの役割は？（複数）",a:["支援","障害除去","指示","統制"],correct:[0,1],multi:true},
+{q:"BAの役割は？（複数）",a:["要件定義","翻訳","調整","コーディング"],correct:[0,1,2],multi:true},
+
+/* ===== Cloud ===== */
+{q:"CustomerEngageの特徴は？",a:["代理店","顧客用","分析","開発"],correct:[1],multi:false},
+{q:"Exploreの役割は？",a:["分析","UI","DB","API"],correct:[0],multi:false},
+
+/* ===== SurePath超重要 ===== */
+{q:"SurePathの目的は？（複数）",a:["再現性","品質","効率化","混乱"],correct:[0,1,2],multi:true},
+{q:"SurePathの構成は？（複数）",a:["方法論","ツール","テンプレ","自由裁量"],correct:[0,1,2],multi:true},
+
+/* ===== 最強引っかけ ===== */
+{q:"インセプションでやらないものは？",a:["要件詳細化","見積","リリース","計画"],correct:[2],multi:false},
+{q:"スプリント0でやらないものは？",a:["環境","研修","本番リリース","準備"],correct:[2],multi:false},
+{q:"開発でやらないものは？",a:["デモ","改善","開発","配備"],correct:[3],multi:false},
+{q:"安定化でやらないものは？",a:["E2E","UAT","開発","テスト"],correct:[2],multi:false},
+
+{
+q:"プリインセプションの検出フェーズで行われることをすべて選択しなさい",
+a:["E2Eテスト","インプリメンテーションWS",
+"販売デモ",
+"UAT",
+"RFP見積もり",
+"役割の観察"
+],
+correct:[1,2,4,5],
+multi:true
+},
+
+{q:"開発フェーズで行うことをすべて選択しなさい",
+a:[
+"リリース",
+"デモ",
+"データ移行",
+"スプリント計画",
+"ソリューション構築",
+"学習と改善"
+],
+correct:[1,3,4,5],
+multi:true
+},
+
+{
+q:"安定化フェーズで実施するものをすべて選択しなさい",
+a:[
+"開発",
+"UAT",
+"E2Eテスト",
+"分析",
+"リグレッション",
+"パフォーマンステスト"
+],
+correct:[1,2,4,5],
+multi:true
+},
+
+/* ===== プリインセプション ===== */
+{
+q:"プリインセプションの検出フェーズで行われることをすべて選択しなさい",
+a:[
+"E2Eテスト",
+"インプリメンテーションWS",
+"販売デモ",
+"UAT",
+"RFP見積",
+"役割の観察"
+],
+correct:[1,2,4,5],
+multi:true
+},
+
+{
+q:"プリインセプション準備フェーズで行うことをすべて選択しなさい",
+a:[
+"スプリント計画",
+"ベネフィットマッピングWS",
+"開発実装",
+"インセプション計画",
+"サンドボックス構築",
+"テスト設計"
+],
+correct:[1,3,4],
+multi:true
+},
+
+/* ===== インセプション ===== */
+{
+q:"インセプションで行われることをすべて選択しなさい",
+a:[
+"UI構築",
+"バックログ見積",
+"要件詳細化",
+"リリース",
+"スプリント計画",
+"データ移行"
+],
+correct:[1,2,4],
+multi:true
+},
+
+{
+q:"インセプションの成果物として正しいものをすべて選択しなさい",
+a:[
+"インフラ計画",
+"運用マニュアル",
+"プロダクトバックログ",
+"コンセプチュアルスプリント計画",
+"ソースコード",
+"UI定義"
+],
+correct:[0,2,3],
+multi:true
+},
+
+/* ===== スプリント0 ===== */
+{
+q:"スプリント0で行うことをすべて選択しなさい",
+a:[
+"アクセラレータ実装",
+"本番リリース",
+"環境設定",
+"開発スプリント",
+"研修",
+"基本コンフィグ"
+],
+correct:[0,2,4,5],
+multi:true
+},
+
+{
+q:"スプリント0で行わないものを選択しなさい（複数）",
+a:[
+"環境構築",
+"ユーザーストーリー実装",
+"研修",
+"アクセラレータ設定",
+"本番運用",
+"ツール準備"
+],
+correct:[1,4],
+multi:true
+},
+
+/* ===== 開発フェーズ ===== */
+{
+q:"開発フェーズで実施されるものをすべて選択しなさい",
+a:[
+"スプリント計画",
+"データ移行",
+"ソリューション構築",
+"デモ",
+"学習と改善",
+"本番配備"
+],
+correct:[0,2,3,4],
+multi:true
+},
+
+{
+q:"開発フェーズで行わないものはどれか（複数）",
+a:[
+"リリース",
+"UAT",
+"コード開発",
+"デモ",
+"スプリント",
+"分析"
+],
+correct:[0,1],
+multi:true
+},
+
+/* ===== 安定化 ===== */
+{
+q:"安定化フェーズで実施するテストをすべて選択しなさい",
+a:[
+"E2Eテスト",
+"設計レビュー",
+"UAT",
+"単体テスト",
+"パフォーマンステスト",
+"リグレッションテスト"
+],
+correct:[0,2,4,5],
+multi:true
+},
+
+{
+q:"安定化フェーズで行わないものはどれか（複数）",
+a:[
+"E2E",
+"新機能開発",
+"UAT",
+"分析",
+"設計",
+"リグレッション"
+],
+correct:[1,4],
+multi:true
+},
+
+/* ===== 配備 ===== */
+{
+q:"配備フェーズで行うことをすべて選択しなさい",
+a:[
+"データ移行",
+"本番リリース",
+"スプリント計画",
+"ユーザー研修",
+"開発実装",
+"ハイパーケア",
+"先行配備"
+],
+correct:[0,1,3,5,6],
+multi:true
+},
+
+{
+q:"配備フェーズで行わないものを選びなさい（複数）",
+a:[
+"開発",
+"データ移行",
+"研修",
+"テスト",
+"ハイパーケア",
+"リリース"
+],
+correct:[0],
+multi:true
+},
+
+/* ===== テスト ===== */
+{
+q:"品質保証として実施されるテストをすべて選択しなさい",
+a:[
+"E2E",
+"設計レビュー",
+"UAT",
+"パフォーマンス",
+"データ分析",
+"リグレッション"
+],
+correct:[0,2,3,5],
+multi:true
+},
+
+{
+q:"UATの特徴として正しいものを選択しなさい（複数）",
+a:[
+"開発者が実施",
+"ユーザーが実施",
+"業務確認",
+"コード確認",
+"最終承認",
+"負荷確認"
+],
+correct:[1,2,4],
+multi:true
+},
+
+/* ===== インテグレーション ===== */
+{
+q:"インテグレーション手法をすべて選択しなさい",
+a:[
+"UI設計",
+"Webサービス",
+"メッセージング",
+"バッチ",
+"プラグイン",
+"単体テスト"
+],
+correct:[1,2,3,4],
+multi:true
+},
+
+{
+q:"インテグレーションの目的として正しいものをすべて選択しなさい",
+a:[
+"外部連携",
+"既存活用",
+"開発削減",
+"UI改善",
+"コスト削減",
+"設計統一"
+],
+correct:[0,1,2,4],
+multi:true
+},
+
+/* ===== データモデル ===== */
+{
+q:"エンティティに関する構成要素をすべて選択しなさい",
+a:[
+"フィールド",
+"タイプキー",
+"API",
+"外部キー",
+"配列キー",
+"UI"
+],
+correct:[0,1,3,4],
+multi:true
+},
+
+{
+q:"タイプキーの役割として正しいものを選択しなさい（複数）",
+a:[
+"自由入力",
+"値の制約",
+"コード生成",
+"定義統一",
+"画面作成",
+"API管理"
+],
+correct:[1,3],
+multi:true
+},
+
+/* ===== コンフィグ ===== */
+{
+q:"コンフィグで変更可能な領域をすべて選択しなさい",
+a:[
+"UI",
+"DBスキーマ",
+"ビジネスロジック",
+"インテグレーション設定",
+"OS",
+"ネットワーク"
+],
+correct:[0,1,2,3],
+multi:true
+},
+
+{
+q:"コンフィグに該当しないものはどれか（複数）",
+a:[
+"UI変更",
+"ロジック変更",
+"インフラ構築",
+"データモデル変更",
+"プラグイン",
+"テスト"
+],
+correct:[2,5],
+multi:true
+},
+
+/* ===== ワークショップ ===== */
+{
+q:"詳細化WSで行うものをすべて選択しなさい",
+a:[
+"ハッピーパス定義",
+"エッジケース整理",
+"パーキングロット管理",
+"コード実装",
+"DB設計",
+"API構築"
+],
+correct:[0,1,2],
+multi:true
+},
+
+{
+q:"ワークショップで避けるべき行動を選択しなさい（複数）",
+a:[
+"脱線",
+"複数会話",
+"議論整理",
+"保留管理",
+"合意形成",
+"無関係な話"
+],
+correct:[0,1,5],
+multi:true
+},
+
+/* ===== INVEST ===== */
+{
+q:"INVESTに含まれる要素をすべて選択しなさい",
+a:[
+"Independent",
+"Negotiable",
+"Valuable",
+"Estimable",
+"Small",
+"Testable",
+"Executable"
+],
+correct:[0,1,2,3,4,5],
+multi:true
+},
+
+/* ===== 役割 ===== */
+{
+q:"BAの役割をすべて選択しなさい",
+a:[
+"要件整理",
+"開発",
+"翻訳",
+"調整",
+"営業",
+"テスト"
+],
+correct:[0,2,3],
+multi:true
+},
+
+{
+q:"スクラムマスターの役割をすべて選択しなさい",
+a:[
+"開発",
+"支援",
+"障害除去",
+"プロセス管理",
+"営業",
+"決裁"
+],
+correct:[1,2,3],
+multi:true
+},
+
+/* ===== SurePath ===== */
+{
+q:"SurePathの特徴をすべて選択しなさい",
+a:[
+"テンプレート",
+"自由開発",
+"標準プロセス",
+"ツール",
+"品質担保",
+"無制限開発"
+],
+correct:[0,2,3,4],
+multi:true
+},
+
+{
+q:"SurePathの目的をすべて選択しなさい",
+a:[
+"品質確保",
+"再現性向上",
+"効率化",
+"開発自由化",
+"標準化",
+"混乱抑制"
+],
+correct:[0,1,2,4,5],
+multi:true
+},
+
+/* ===== フェーズ横断（ガチ） ===== */
+{
+q:"プロジェクト初期段階で行われる活動をすべて選択しなさい",
+a:[
+"RFP見積",
+"データ移行",
+"販売デモ",
+"ユーザー研修",
+"インプリメンテーションWS",
+"E2Eテスト",
+"役割観察"
+],
+correct:[0,2,4,6],
+multi:true
+},
+
+{
+q:"品質保証に該当する活動をすべて選択しなさい",
+a:[
+"E2Eテスト",
+"UI設計",
+"UAT",
+"リグレッション",
+"パフォーマンス",
+"データ分析",
+"コードレビュー"
+],
+correct:[0,2,3,4],
+multi:true
+},
+
+/* ===== フェーズ理解 ===== */
+{
+q:"開発フェーズで行われる内容をすべて選択しなさい",
+a:[
+"スプリント",
+"データ移行",
+"ソリューション構築",
+"デモ",
+"リリース",
+"学習改善",
+"UAT"
+],
+correct:[0,2,3,5],
+multi:true
+},
+
+{
+q:"安定化フェーズで実施する内容をすべて選択しなさい",
+a:[
+"開発",
+"E2E",
+"設計",
+"UAT",
+"パフォーマンス",
+"リリース",
+"リグレッション"
+],
+correct:[1,3,4,6],
+multi:true
+},
+
+{
+q:"配備フェーズで行う内容をすべて選択しなさい",
+a:[
+"データ移行",
+"ユーザー研修",
+"スプリント",
+"完全配備",
+"開発",
+"ハイパーケア",
+"先行配備"
+],
+correct:[0,1,3,5,6],
+multi:true
+},
+
+/* ===== テスト深掘り ===== */
+{
+q:"テスト分類として正しいものをすべて選択しなさい",
+a:[
+"E2E",
+"単体テスト",
+"UAT",
+"パフォーマンス",
+"スプリント",
+"リグレッション",
+"分析"
+],
+correct:[0,1,2,3,5],
+multi:true
+},
+
+{
+q:"UATの特徴として正しいものをすべて選択しなさい",
+a:[
+"ユーザー実施",
+"最終確認",
+"コードレビュー",
+"業務検証",
+"開発者主導",
+"承認工程",
+"負荷試験"
+],
+correct:[0,1,3,5],
+multi:true
+},
+
+/* ===== コンフィグ ===== */
+{
+q:"コンフィグで変更できる対象をすべて選択しなさい",
+a:[
+"UI",
+"業務ロジック",
+"インフラ",
+"データモデル",
+"インテグ設定",
+"OS",
+"ネットワーク"
+],
+correct:[0,1,3,4],
+multi:true
+},
+
+{
+q:"UI変更に該当するものをすべて選択しなさい",
+a:[
+"ラベル変更",
+"配置変更",
+"DB変更",
+"画面追加",
+"ロジック削除",
+"スタイル変更",
+"API設計"
+],
+correct:[0,1,3,5],
+multi:true
+},
+
+/* ===== データモデル ===== */
+{
+q:"データモデル要素をすべて選択しなさい",
+a:[
+"フィールド",
+"タイプキー",
+"配列キー",
+"外部キー",
+"UI",
+"API",
+"トランザクション"
+],
+correct:[0,1,2,3],
+multi:true
+},
+
+{
+q:"タイプキーの特徴をすべて選択しなさい",
+a:[
+"値制限",
+"定義管理",
+"自由入力",
+"一貫性向上",
+"UI生成",
+"DB削除",
+"APIシンク"
+],
+correct:[0,1,3],
+multi:true
+},
+
+/* ===== インテグ ===== */
+{
+q:"インテグレーションの目的として正しいものをすべて選択しなさい",
+a:[
+"外部連携",
+"既存活用",
+"業務効率化",
+"UI変更",
+"コスト削減",
+"分析強化",
+"セキュリティ削減"
+],
+correct:[0,1,2,4],
+multi:true
+},
+
+{
+q:"インテグレーション手法をすべて選択しなさい",
+a:[
+"Webサービス",
+"メッセージング",
+"バッチ",
+"プラグイン",
+"UI定義",
+"分析",
+"DB設計"
+],
+correct:[0,1,2,3],
+multi:true
+},
+
+/* ===== ロジック ===== */
+{
+q:"ビジネスルールに含まれる要素をすべて選択しなさい",
+a:[
+"条件",
+"UI",
+"トリガ",
+"アクション",
+"DB",
+"画面",
+"API"
+],
+correct:[0,2,3],
+multi:true
+},
+
+{
+q:"Gosuの用途として正しいものをすべて選択しなさい",
+a:[
+"ロジック記述",
+"SQL生成",
+"UI構築",
+"業務処理",
+"データ削除",
+"API作成",
+"テスト"
+],
+correct:[0,3],
+multi:true
+},
+
+/* ===== ワークショップ ===== */
+{
+q:"詳細化WSで行う内容をすべて選択しなさい",
+a:[
+"ハッピーパス",
+"エッジケース",
+"パーキングロット",
+"コード実装",
+"DB設計",
+"API構築",
+"議論整理"
+],
+correct:[0,1,2,6],
+multi:true
+},
+
+{
+q:"WSで避けるべき行動をすべて選択しなさい",
+a:[
+"脱線",
+"複数会話",
+"合意形成",
+"保留管理",
+"無関係な議論",
+"メモ",
+"議論集中"
+],
+correct:[0,1,4],
+multi:true
+},
+
+/* ===== INVEST ===== */
+{
+q:"INVESTの特徴に該当するものをすべて選択しなさい",
+a:[
+"Independent",
+"Negotiable",
+"Valuable",
+"Estimable",
+"Small",
+"Testable",
+"Deployable"
+],
+correct:[0,1,2,3,4,5],
+multi:true
+},
+
+/* ===== 役割 ===== */
+{
+q:"プロダクトオーナーの役割をすべて選択しなさい",
+a:[
+"価値最大化",
+"優先順位決定",
+"開発",
+"意思決定",
+"営業",
+"仕様管理",
+"分析"
+],
+correct:[0,1,3,5],
+multi:true
+},
+
+{
+q:"スクラムマスターの役割をすべて選択しなさい",
+a:[
+"障害除去",
+"支援",
+"プロセス改善",
+"開発",
+"統制",
+"促進",
+"営業"
+],
+correct:[0,1,2,5],
+multi:true
+},
+
+/* ===== SurePath ===== */
+{
+q:"SurePathに含まれる要素をすべて選択しなさい",
+a:[
+"方法論",
+"ツール",
+"テンプレ",
+"自由開発",
+"標準プロセス",
+"品質管理",
+"無制約開発"
+],
+correct:[0,1,2,4,5],
+multi:true
+},
+
+{
+q:"SurePathの目的として正しいものをすべて選択しなさい",
+a:[
+"品質確保",
+"再現性",
+"効率化",
+"自由度向上",
+"標準化",
+"混乱削減",
+"リスク増加"
+],
+correct:[0,1,2,4,5],
+multi:true
+},
+
+/* ===== 超引っかけ ===== */
+{
+q:"開発フェーズで行われないものをすべて選択しなさい",
+a:[
+"デモ",
+"スプリント",
+"リリース",
+"データ移行",
+"開発",
+"UAT",
+"コード修正"
+],
+correct:[2,3,5],
+multi:true
+},
+
+{
+q:"安定化フェーズで行われないものをすべて選択しなさい",
+a:[
+"E2E",
+"UAT",
+"新機能開発",
+"リグレッション",
+"設計",
+"テスト",
+"改善"
+],
+correct:[2,4],
+multi:true
+},
+
+/* ===== フェーズ概念 ===== */
+{
+q:"Guidewire実装のフェーズに含まれるものをすべて選択しなさい",
+a:[
+"プリインセプション",
+"インセプション",
+"スプリント0",
+"開発",
+"安定化",
+"配備",
+"運用"
+],
+correct:[0,1,2,3,4,5],
+multi:true
+},
+
+{
+q:"フェーズの順序として正しいものをすべて選択しなさい",
+a:[
+"プリインセプション→インセプション",
+"インセプション→開発",
+"スプリント0→開発",
+"開発→安定化",
+"安定化→配備",
+"配備→開発"
+],
+correct:[0,2,3,4],
+multi:true
+},
+
+/* ===== フェーズ別粒度 ===== */
+{
+q:"プリインセプションで行う活動をすべて選択しなさい",
+a:[
+"RFP見積",
+"販売デモ",
+"役割観察",
+"E2Eテスト",
+"インプリメンテーションWS",
+"運用設計",
+"リグレッション"
+],
+correct:[0,1,2,4],
+multi:true
+},
+
+{
+q:"インセプションで行う活動をすべて選択しなさい",
+a:[
+"要件詳細化",
+"バックログ作成",
+"スプリント計画",
+"データ移行",
+"UI開発",
+"見積",
+"リリース"
+],
+correct:[0,1,2,5],
+multi:true
+},
+
+{
+q:"スプリント0で行う活動をすべて選択しなさい",
+a:[
+"環境構築",
+"開発研修",
+"ソリューション構築",
+"アクセラレータ設定",
+"基本コンフィグ",
+"データ移行",
+"UAT"
+],
+correct:[0,1,3,4],
+multi:true
+},
+
+/* ===== 成果物深掘り ===== */
+{
+q:"インセプションの成果物として正しいものをすべて選択しなさい",
+a:[
+"プロダクトバックログ",
+"インフラ計画",
+"スプリント計画",
+"コード",
+"コンセプチュアル計画",
+"運用手順",
+"UI定義"
+],
+correct:[0,1,2,4],
+multi:true
+},
+
+{
+q:"開発フェーズの成果物として正しいものをすべて選択しなさい",
+a:[
+"バーンダウン",
+"ベロシティ",
+"バックログ更新",
+"本番データ",
+"ユーザーマニュアル",
+"進捗レポート",
+"設計完了書"
+],
+correct:[0,1,2,5],
+multi:true
+},
+
+/* ===== ロジック ===== */
+{
+q:"ビジネスルールの構成要素をすべて選択しなさい",
+a:[
+"条件",
+"トリガ",
+"アクション",
+"UI",
+"DB",
+"API",
+"例外処理"
+],
+correct:[0,1,2,6],
+multi:true
+},
+
+{
+q:"Gosuで実現するものをすべて選択しなさい",
+a:[
+"業務ロジック",
+"データ処理",
+"UIレイアウト",
+"バリデーション",
+"DB削除",
+"フロー制御",
+"テスト"
+],
+correct:[0,1,3,5],
+multi:true
+},
+
+/* ===== テスト体系 ===== */
+{
+q:"テストの種類として正しいものをすべて選択しなさい",
+a:[
+"単体テスト",
+"E2E",
+"UAT",
+"パフォーマンス",
+"UI設計",
+"リグレッション",
+"分析"
+],
+correct:[0,1,2,3,5],
+multi:true
+},
+
+{
+q:"E2Eテストの特徴として正しいものをすべて選択しなさい",
+a:[
+"業務フロー検証",
+"全体確認",
+"部分確認",
+"ユーザー視点",
+"API単体確認",
+"統合確認",
+"設計レビュー"
+],
+correct:[0,1,3,5],
+multi:true
+},
+
+/* ===== インテグレーション詳細 ===== */
+{
+q:"インテグレーションの代表的手法をすべて選択しなさい",
+a:[
+"Webサービス",
+"メッセージング",
+"バッチ",
+"プラグイン",
+"UI設計",
+"BI分析",
+"DB作成"
+],
+correct:[0,1,2,3],
+multi:true
+},
+
+{
+q:"インテグレーションの利点をすべて選択しなさい",
+a:[
+"再利用",
+"外部連携",
+"効率化",
+"UI改善",
+"コスト削減",
+"独立化",
+"複雑化"
+],
+correct:[0,1,2,4],
+multi:true
+},
+
+/* ===== データ構造 ===== */
+{
+q:"データモデルの構成要素をすべて選択しなさい",
+a:[
+"エンティティ",
+"フィールド",
+"タイプキー",
+"外部キー",
+"配列キー",
+"UI",
+"スプリント"
+],
+correct:[0,1,2,3,4],
+multi:true
+},
+
+{
+q:"タイプキーの利点をすべて選択しなさい",
+a:[
+"入力制限",
+"一貫性",
+"自由入力",
+"メンテ性向上",
+"UI自動生成",
+"バグ削減",
+"API削減"
+],
+correct:[0,1,3,5],
+multi:true
+},
+
+/* ===== コンフィグ最深部 ===== */
+{
+q:"コンフィグで変更可能な項目をすべて選択しなさい",
+a:[
+"UI",
+"データモデル",
+"ロジック",
+"インテグレーション",
+"ネットワーク",
+"OS",
+"設定値"
+],
+correct:[0,1,2,3,6],
+multi:true
+},
+
+{
+q:"UI変更に該当するものをすべて選択しなさい",
+a:[
+"ラベル変更",
+"配置変更",
+"カラー変更",
+"DB変更",
+"画面追加",
+"ロジック削除",
+"スタイル変更"
+],
+correct:[0,1,2,4,6],
+multi:true
+},
+
+/* ===== ワークショップ深化 ===== */
+{
+q:"詳細化ワークショップで行う活動をすべて選択しなさい",
+a:[
+"ハッピーパス",
+"エッジケース",
+"パーキングロット",
+"コード記述",
+"合意形成",
+"議論整理",
+"要件確認"
+],
+correct:[0,1,2,4,5,6],
+multi:true
+},
+
+{
+q:"ワークショップで避けるべきものをすべて選択しなさい",
+a:[
+"脱線",
+"複数会話",
+"無関係議論",
+"合意形成",
+"整理",
+"保留管理",
+"集中"
+],
+correct:[0,1,2],
+multi:true
+},
+
+/* ===== INVEST完全理解 ===== */
+{
+q:"INVESTの各要素をすべて選択しなさい",
+a:[
+"Independent",
+"Negotiable",
+"Valuable",
+"Estimable",
+"Small",
+"Testable",
+"Executable"
+],
+correct:[0,1,2,3,4,5],
+multi:true
+},
+
+/* ===== 役割完全版 ===== */
+{
+q:"BAの役割に該当するものをすべて選択しなさい",
+a:[
+"要件整理",
+"翻訳",
+"調整",
+"開発",
+"営業",
+"分析",
+"ドキュメント化"
+],
+correct:[0,1,2,5,6],
+multi:true
+},
+
+{
+q:"スクラムマスターの役割に該当するものをすべて選択しなさい",
+a:[
+"障害除去",
+"支援",
+"促進",
+"開発",
+"統制",
+"プロセス改善",
+"タスク割当"
+],
+correct:[0,1,2,5],
+multi:true
+},
+
+{
+q:"プロダクトオーナーの役割をすべて選択しなさい",
+a:[
+"優先順位付",
+"意思決定",
+"開発",
+"価値最大化",
+"仕様管理",
+"営業",
+"品質監査"
+],
+correct:[0,1,3,4],
+multi:true
+},
+
+/* ===== SurePath完全理解 ===== */
+{
+q:"SurePathの構成要素をすべて選択しなさい",
+a:[
+"方法論",
+"ツール",
+"テンプレ",
+"プロセス",
+"自由開発",
+"品質管理",
+"標準"
+],
+correct:[0,1,2,3,5,6],
+multi:true
+},
+
+{
+q:"SurePathの利点をすべて選択しなさい",
+a:[
+"再現性",
+"品質確保",
+"効率化",
+"自由度増加",
+"標準化",
+"リスク削減",
+"コスト増加"
+],
+correct:[0,1,2,4,5],
+multi:true
+}
+
+];
+
+// ===== 変数 =====
+let questions = [];
+let i = 0;
+let score = 0;
+let sel = [];
+let wrongList = [];
+let usedQuestions = [];
+
+// ===== シャッフル =====
+function shuffle(arr){
+  for(let x = arr.length - 1; x > 0; x--){
+    let j = Math.floor(Math.random() * (x + 1));
+    [arr[x], arr[j]] = [arr[j], arr[x]];
+  }
+}
+
+// ===== スタート =====
+function start(){
+  let count = parseInt(document.getElementById("count").value);
+
+  questions = [];
+  usedQuestions = [];
+
+  let available = [...base];
+
+  shuffle(available);
+
+  questions = available.slice(0, count);
+
+  usedQuestions = questions.map(q => q.q);
+
+  i = 0;
+  score = 0;
+  wrongList = [];
+
+  document.getElementById("setup").style.display = "none";
+  document.getElementById("quiz").style.display = "block";
+  document.getElementById("result").style.display = "none";
+  document.getElementById("retryBtn").style.display = "none";
+  document.getElementById("retryNewBtn").style.display = "none";
+
+  show();
+}
+
+// ===== 表示 =====
+function show(){
+  let q = questions[i];
+  sel = [];
+
+  document.getElementById("q").innerHTML = "Q" + (i + 1) + "：" + q.q;
+
+  let html = "";
+  q.a.forEach((opt, n) => {
+    html += `<button class="btn" onclick="selectAnswer(this,${n})">${opt}</button>`;
+  });
+
+  document.getElementById("a").innerHTML = html;
+  document.getElementById("ex").innerHTML = "";
+  document.getElementById("nextBtn").style.display = "none";
+
+  const submitBtn = document.getElementById("submitBtn");
+  submitBtn.style.display = "block";
+  submitBtn.disabled = false;
+}
+
+// ===== 選択 =====
+function selectAnswer(btn, n){
+  let q = questions[i];
+
+  if(q.multi){
+    if(sel.includes(n)){
+      sel = sel.filter(x => x !== n);
+      btn.classList.remove("selected");
+    }else{
+      sel.push(n);
+      btn.classList.add("selected");
+    }
+  }else{
+    sel = [n];
+    document.querySelectorAll("#a .btn").forEach(b => b.classList.remove("selected"));
+    btn.classList.add("selected");
+  }
+}
+
+// ===== 回答 =====
+function submitAnswer(){
+  if(sel.length === 0){
+    alert("選択して！");
+    return;
+  }
+
+  const submitBtn = document.getElementById("submitBtn");
+  submitBtn.disabled = true;
+  submitBtn.style.display = "none";
+
+  let q = questions[i];
+
+  let sortedSel = [...sel].sort((a, b) => a - b);
+  let sortedCorrect = [...q.correct].sort((a, b) => a - b);
+  let ok = JSON.stringify(sortedSel) === JSON.stringify(sortedCorrect);
+
+  document.querySelectorAll("#a .btn").forEach((b, n) => {
+    if(q.correct.includes(n)) b.classList.add("correct");
+    if(sel.includes(n) && !q.correct.includes(n)) b.classList.add("wrong");
+    b.disabled = true;
+  });
+
+  if(ok){
+    score++;
+    document.getElementById("ex").innerHTML = "✅ 正解！";
+  }else{
+    document.getElementById("ex").innerHTML = "❌ 不正解！";
+
+    wrongList.push({
+      question: q.q,
+      answers: q.a,
+      correct: q.correct
+    });
+  }
+
+  document.getElementById("nextBtn").style.display = "block";
+}
+
+// ===== 次へ =====
+function nextQuestion(){
+  i++;
+
+  if(i < questions.length){
+    show();
+  }else{
+    document.getElementById("quiz").style.display = "none";
+    document.getElementById("result").style.display = "block";
+
+    let html = "<h3>スコア：" + score + "/" + questions.length + "</h3>";
+
+    if(wrongList.length > 0){
+      html += "<h4>❌ 間違えた問題</h4>";
+
+      wrongList.forEach((w, index) => {
+        html += "<div style='margin-bottom:20px;'>";
+        html += "<b>Q" + (index + 1) + "：" + w.question + "</b><br>";
+
+        w.answers.forEach((a, i) => {
+          if(w.correct.includes(i)){
+            html += "✅ " + a + "<br>";
+          }else{
+            html += "・" + a + "<br>";
+          }
+        });
+
+        html += "</div>";
+      });
+
+      document.getElementById("retryBtn").style.display = "block";
+    }else{
+      html += "<p>🎉 全問正解！！</p>";
+      document.getElementById("retryBtn").style.display = "none";
+    }
+
+    document.getElementById("result").innerHTML = html;
+    document.getElementById("retryNewBtn").style.display = "block";
+  }
+}
+
+// ===== 間違い問題だけ再挑戦 =====
+function retryWrong(){
+  if(wrongList.length === 0){
+    return;
+  }
+
+  questions = wrongList.map(w => ({
+    q: w.question,
+    a: w.answers,
+    correct: w.correct,
+    multi: w.correct.length > 1
+  }));
+
+  i = 0;
+  score = 0;
+  wrongList = [];
+
+  document.getElementById("result").style.display = "none";
+  document.getElementById("quiz").style.display = "block";
+  document.getElementById("retryBtn").style.display = "none";
+  document.getElementById("retryNewBtn").style.display = "none";
+
+  show();
+}
+
+// ===== 別問題でもう一回 =====
+function retryNew(){
+  let count = questions.length;
+
+  let filtered = base.filter(q => !usedQuestions.includes(q.q));
+
+  if(filtered.length < count){
+    filtered = [...base];
+  }
+
+  shuffle(filtered);
+
+  questions = filtered.slice(0, count);
+
+  usedQuestions = usedQuestions.concat(questions.map(q => q.q));
+
+  i = 0;
+  score = 0;
+  wrongList = [];
+
+  document.getElementById("result").style.display = "none";
+  document.getElementById("quiz").style.display = "block";
+  document.getElementById("retryNewBtn").style.display = "none";
+  document.getElementById("retryBtn").style.display = "none";
+
+  show();
+}
+
+</script>
+
+</body>
+</html>
